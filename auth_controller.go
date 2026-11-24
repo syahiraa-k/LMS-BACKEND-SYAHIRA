@@ -1,7 +1,6 @@
  package main
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -37,7 +36,6 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Token sekarang membawa NAMA pengguna untuk ditampilkan di Header Frontend
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":   user.ID,
 		"role_id":   user.RoleID,

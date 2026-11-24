@@ -108,9 +108,6 @@ func ImportDataExcel(c *gin.Context) {
 				}
 			}
 		} else {
-			// ==========================================
-			// PROSES JIKA SHEET SISWA
-			// ==========================================
 			fmt.Printf("🎓 Memproses Sheet Siswa: %s\n", sheetName)
 			for i := 1; i < len(rows); i++ {
 				row := rows[i]
@@ -140,7 +137,7 @@ func ImportDataExcel(c *gin.Context) {
 						"Name": nama, "NISN_NIP": safeGet(row, 3), "NIS": safeGet(row, 4), 
 						"TempatLahir": safeGet(row, 5), "TanggalLahir": safeGet(row, 6), 
 						"JenisKelamin": safeGet(row, 7), "ClassID": &kelas.ID,
-						"RoleID": 3, // Paksa pastikan role tetap Siswa
+						"RoleID": 3, 
 					})
 				} else {
 					newUser := User{

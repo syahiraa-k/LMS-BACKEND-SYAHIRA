@@ -20,28 +20,58 @@ type Role struct {
 	RoleName string `gorm:"type:varchar(50);unique;not null"`
 }
 
+// Permission stores the role-by-feature privilege matrix shown in the LMS specification.
+type Permission struct {
+	ID        uint   `gorm:"primaryKey" json:"id"`
+	Feature   string `gorm:"type:varchar(100);uniqueIndex;not null" json:"feature"`
+	Guru      bool   `json:"guru"`
+	Admin     bool   `json:"admin"`
+	Siswa     bool   `json:"siswa"`
+	Kepsek    bool   `json:"kepsek"`
+	Kurikulum bool   `json:"kurikulum"`
+}
+
+func seedPermissions() {
+	rows := []Permission{
+		{Feature: "login", Guru: true, Admin: true, Siswa: true, Kepsek: true, Kurikulum: true},
+		{Feature: "logout", Guru: true, Admin: true, Siswa: true, Kepsek: true, Kurikulum: true},
+		{Feature: "crud_akun", Admin: true}, {Feature: "download_materi", Siswa: true},
+		{Feature: "crud_assesmen_soal_kuis", Guru: true}, {Feature: "crud_materi", Guru: true},
+		{Feature: "crud_tugas_project", Guru: true}, {Feature: "manajemen_kelas_jurusan", Admin: true},
+		{Feature: "manajemen_guru_pelajaran", Admin: true}, {Feature: "generate_nilai_per_mapel", Guru: true},
+		{Feature: "melihat_tugas_guru", Kepsek: true, Kurikulum: true},
+		{Feature: "melihat_guru_pembuat_soal_ulangan"},
+		{Feature: "melihat_data_guru", Admin: true, Kepsek: true, Kurikulum: true},
+		{Feature: "melihat_data_siswa", Guru: true, Admin: true, Kepsek: true, Kurikulum: true},
+		{Feature: "mengerjakan_tugas_project_ujian", Siswa: true},
+	}
+	for _, row := range rows {
+		DB.Where(Permission{Feature: row.Feature}).Assign(row).FirstOrCreate(&Permission{})
+	}
+}
+
 type User struct {
-	ID           string `gorm:"primaryKey;type:varchar(36)"`
+	ID string `gorm:"primaryKey;type:varchar(36)"`
 	// Penambahan pengunci nama kolom (column:nisn_nip) agar tidak error saat login
-	NISN_NIP     string `gorm:"column:nisn_nip;type:varchar(50)"` 
-	NIS          string `gorm:"column:nis;type:varchar(50)"` 
+	NISN_NIP     string `gorm:"column:nisn_nip;type:varchar(50)"`
+	NIS          string `gorm:"column:nis;type:varchar(50)"`
 	Name         string `gorm:"type:varchar(100);not null"`
 	Email        string `gorm:"type:varchar(100);unique;not null"`
 	PasswordHash string `gorm:"type:varchar(255);not null"`
 	TempatLahir  string `gorm:"type:varchar(100)"`
 	TanggalLahir string `gorm:"type:date"`
 	JenisKelamin string `gorm:"type:varchar(20)"`
-	Specialty    string `gorm:"type:varchar(100)"` 
-	
-	RoleID       uint   `gorm:"column:role_id"`
-	Role         Role   `gorm:"foreignKey:RoleID"`
-	
-	ClassID      *uint  `gorm:"column:class_id"`
-	Class        *Class `gorm:"foreignKey:ClassID"`
+	Specialty    string `gorm:"type:varchar(100)"`
+
+	RoleID uint `gorm:"column:role_id"`
+	Role   Role `gorm:"foreignKey:RoleID"`
+
+	ClassID *uint  `gorm:"column:class_id"`
+	Class   *Class `gorm:"foreignKey:ClassID"`
 
 	TaughtClasses []Class `gorm:"many2many:teacher_classes;"`
 
-	CreatedAt    time.Time
+	CreatedAt time.Time
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
@@ -54,39 +84,39 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 type Class struct {
 	ID                uint   `gorm:"primaryKey"`
 	ClassName         string `gorm:"type:varchar(50);not null;unique"`
-	HomeroomTeacherID *string 
-	HomeroomTeacher   *User   `gorm:"foreignKey:HomeroomTeacherID"`
+	HomeroomTeacherID *string
+	HomeroomTeacher   *User `gorm:"foreignKey:HomeroomTeacherID"`
 	CreatedAt         time.Time
 }
 
 type Subject struct {
 	ID          uint   `gorm:"primaryKey"`
 	SubjectName string `gorm:"type:varchar(100);not null"`
-	TeacherID   string 
-	Teacher     User   `gorm:"foreignKey:TeacherID"`
+	TeacherID   string
+	Teacher     User `gorm:"foreignKey:TeacherID"`
 }
 
 type Schedule struct {
-	ID        uint   `gorm:"primaryKey"`
-	ClassID   uint   
-	Class     Class  `gorm:"foreignKey:ClassID"`
-	SubjectID uint   
+	ID        uint `gorm:"primaryKey"`
+	ClassID   uint
+	Class     Class `gorm:"foreignKey:ClassID"`
+	SubjectID uint
 	Subject   Subject `gorm:"foreignKey:SubjectID"`
-	DayOfWeek string `gorm:"type:varchar(20);not null"`
-	StartTime string `gorm:"type:varchar(10);not null"`
-	EndTime   string `gorm:"type:varchar(10);not null"`
+	DayOfWeek string  `gorm:"type:varchar(20);not null"`
+	StartTime string  `gorm:"type:varchar(10);not null"`
+	EndTime   string  `gorm:"type:varchar(10);not null"`
 }
 
 type Material struct {
-	ID         uint   `gorm:"primaryKey"`
+	ID         uint `gorm:"primaryKey"`
 	SubjectID  uint
 	Title      string `gorm:"type:varchar(255);not null"`
 	ContentURL string `gorm:"type:text"`
-	UploadedBy string 
+	UploadedBy string
 }
 
 type Assignment struct {
-	ID        uint   `gorm:"primaryKey"`
+	ID        uint `gorm:"primaryKey"`
 	SubjectID uint
 	Title     string `gorm:"type:varchar(255);not null"`
 	Deadline  time.Time
@@ -94,17 +124,19 @@ type Assignment struct {
 }
 
 type Submission struct {
-	ID           uint   `gorm:"primaryKey"`
+	ID           uint `gorm:"primaryKey"`
 	AssignmentID uint
-	StudentID    string 
+	StudentID    string
 	FileURL      string `gorm:"type:text;not null"`
 	Score        int
 	Feedback     string `gorm:"type:text"`
 }
 
 func seedRoles() {
-	roles := []Role{{ID: 1, RoleName: "Admin"}, {ID: 2, RoleName: "Guru"}, {ID: 3, RoleName: "Siswa"}}
-	for _, role := range roles { DB.FirstOrCreate(&role, Role{ID: role.ID}) }
+	roles := []Role{{ID: 1, RoleName: "Admin"}, {ID: 2, RoleName: "Guru"}, {ID: 3, RoleName: "Siswa"}, {ID: 4, RoleName: "Kepala Sekolah"}, {ID: 5, RoleName: "Kurikulum"}}
+	for _, role := range roles {
+		DB.FirstOrCreate(&role, Role{ID: role.ID})
+	}
 	log.Println("✅ Data Role berhasil disuntikkan!")
 }
 
@@ -126,19 +158,22 @@ func seedUsers() {
 	if DB.Where("email = ?", "siswa@cn.edu").First(&siswa).Error != nil {
 		DB.Create(&User{Name: "Andi Pratama", Email: "siswa@cn.edu", NISN_NIP: "0081234567", NIS: "10121", PasswordHash: passString, RoleID: 3})
 	}
-	
+
 	log.Println("✅ Data Akun Bawaan (Admin, Guru, Siswa) berhasil disuntikkan!")
 }
 
 func main() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("lms_data.db"), &gorm.Config{})
-	if err != nil { log.Fatal(err) }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	DB.AutoMigrate(&Role{}, &User{}, &Class{}, &Subject{}, &Schedule{}, &Material{}, &Assignment{}, &Submission{})
-	
+	DB.AutoMigrate(&Role{}, &Permission{}, &User{}, &Class{}, &Subject{}, &Schedule{}, &Material{}, &Assignment{}, &Submission{})
+
 	seedRoles()
-	seedUsers() 
+	seedPermissions()
+	seedUsers()
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
@@ -147,11 +182,16 @@ func main() {
 	}))
 
 	r.GET("/api/status", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "sukses"}) })
+	r.GET("/api/permissions", func(c *gin.Context) {
+		var permissions []Permission
+		DB.Order("id").Find(&permissions)
+		c.JSON(http.StatusOK, gin.H{"data": permissions})
+	})
 	r.POST("/api/register", Register)
 	r.POST("/api/login", Login)
 
 	protected := r.Group("/api")
-	protected.Use(AuthMiddleware()) 
+	protected.Use(AuthMiddleware())
 	{
 		protected.GET("/admin/classes", GetClasses)
 		protected.GET("/admin/classes/:id/details", GetClassDetails)
